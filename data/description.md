@@ -56,3 +56,9 @@ Nimg: the number of lensed images
 - I always set x=0, y=0 for the lensing galaxy.
 - image_x, image_y, image_mu, image_dt are all array of floats with sizes of 5. When the number of images is fewer than 5, the array is filled by -999.
 
+
+## How to get the spectrum and the SED of lensed quasars
+
+For the quasar component: get the qidx of the quasar and find the qidx-th row in qsospec.fits. The wavelengths of the spectrum can be found in the header of qsospec.fits.
+
+For the galaxy component: get the galaxy_id and obtain the SED points from the CosmoDC2 catalog.
