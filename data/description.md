@@ -41,3 +41,18 @@ convergence: the external convergence
 
 shear_1, shear_2: the x- and y- component of the external shear
 
+image_x: the x-coordinates of the lensed images (following GLAFIC conversion)
+
+image_y: the y-coordinates of the lensed images
+
+image_mu: the magnification of th elensed images
+
+image_dt: the time delay of the lensed images
+
+Nimg: the number of lensed images
+
+#### A few notes
+
+- I always set x=0, y=0 for the lensing galaxy.
+- image_x, image_y, image_mu, image_dt are all array of floats with sizes of 5. When the number of images is fewer than 5, the array is filled by -999.
+
