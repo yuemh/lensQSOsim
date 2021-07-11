@@ -3,15 +3,18 @@ import os, sys
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-package_path = '/Users/minghao/Research/Projects/lensQSO/code2/lensqso'
-sys.path.append(package_path)
+#package_path = '/Users/minghao/Research/Projects/lensQSO/code2/lensqso'
+#sys.path.append(package_path)
 
 #dir_root = os.path.abspath(os.getcwd()+'/../')
-dir_data = package_path + '/data'
-dir_code = package_path + '/code'
-dir_exe = package_path + '/../../exe'
+#dir_data = package_path + '/data'
+#dir_code = package_path + '/code'
+#dir_exe = package_path + '/../../exe'
 
-glafic_exe = dir_exe + '/glafic_mac'
+#glafic_exe = dir_exe + '/glafic_mac'
+
+from setpaths import glafic_exe
+dir_exe = os.path.dirname(glafic_exe)
 
 class OneObject(object):
     def __init__(self, redshift, mass_component=[], light_component=[], positions=[]):

@@ -10,7 +10,6 @@ from simqso import qsoSimulation,lumfun,sqmodels
 dr9cosmo = FlatLambdaCDM(70,1-0.7,name='BOSSDR9')
 
 import lensQSOsim.qsopop as qp
-import lensQSOsim.glaficlensing as glafic
 import lensQSOsim.utils as utils
 import lensQSOsim.lensing as lensing
 
@@ -24,6 +23,7 @@ def mockqso(zrange, outdir, abslim=-21, **kwargs):
 
     # one realization = 1/50 sky
     area = allsky_deg2 / cosmodc2_deg2 * random_deg2 * 0.02
+    # use a small area to quickly test the code
 #    area = 10 # for test
 
     # the name of the output file
@@ -74,7 +74,6 @@ def lens_one_realization(qsoinfofile, galinfofile,\
     # find random matched between mock quasars and mock galaxies
     crudecat = lensing.save_crude_catalog(qsoinfo, galinfo, seed=seed)
 
-    crudecat.write('./crudecattest.fits', overwrite=True)
     # lens it
     tbl_lens = lensing.lensing_crude_catalog(crudecat)
 
@@ -85,42 +84,92 @@ def lens_one_realization(qsoinfofile, galinfofile,\
     return tbl_lens
 
 def generate_mainsample(experiment, step):
-    abslim = -21
+
+    '''
+    This is an example of generating a lensed quasar catalog.
+    Please change parameters (mainly some paths) before running this function.
+
+    I divide the code into two steps; step 1 is the generation of the mock quasars
+    and step 2 is the lensing part. You can choose the step to run so that the function
+    has more flexibility.
+    '''
+
+    abslim = -21 # the faint limit of M1450
+
+    # define files and directories
+
+    # the CosmoDC2 galaxy info file
     galinfofile = '/Users/minghao/Research/Projects/lensQSOsim/data/CosmoDC2/allmassivegalaxies_v1_short.fits'
 
     if experiment == 'highz':
+        # the position to store the mock quasars
         mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/default/'
-        qsoinfofile = mockqsodir + '/mockQSO_default_info_highz.fits'
-        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/highz'
 
+        # the redshift ranges to simulate; see qsopop.py for detailed information.
+        # It is not very straightforward because SIMQSO takes observed magnitudes rather than absolute magnitudes as input
+        zrangelist = ['z5', 'z6', 'z7']
+
+        # the final output mock quasar catalog and the mock spectra
+        qsoinfofile = mockqsodir + '/mockQSO_default_info_highz.fits'
+        qsospecfile = mockqsodir + '/mockQSO_default_spec_highz.fits'
+
+        # the position to store the realizations of the lensed quasars
+        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/highz'
+        # the file to save the lensed quasar info
+        outputfile = 'highzlensqso.fits'
+
+        # Number of random realizations. One realization is 1/50 sky
         total_real = 1000
 
     elif experiment == 'lowz':
+        zrangelist = ['lowz', 'medz', 'z4']
         mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/default/'
-        qsoinfofile = mockqsodir + '/mockQSO_default_info_lowz.fits'
-        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/lowz'
+        qsoinfofile = mockqsodir + '/mockQSO_default_info_lowzadd.fits'
+        qsospecfile = mockqsodir + '/mockQSO_default_spec.fits'
+        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/lowzadd/'
+        outputfile = 'lowzaddlensqso.fits'
 
         total_real = 50
+
+    '''
+    Custom paths definition end.
+    No need to change the following code.
+    '''
 
     # step 1: generate mock quasars
     if step == 1:
         os.system('mkdir -p %s'%mockqsodir)
 
-        if experiment == 'highz':
-            mockqso('z4', mockqsodir, abslim)
-            mockqso('z5', mockqsodir, abslim)
-            mockqso('z6', mockqsodir, abslim)
-            mockqso('z7', mockqsodir, abslim)
+        for zrange in zrangelist:
+            mockqso(zrange, mockqsodir, abslim)
 
-        elif experiment == 'lowz':
-            mockqso('lowz', mockqsodir, abslim)
-            mockqso('medz', mockqsodir, abslim)
+        # combine all the files
+
+        combinedinfo = []
+        combinedspec = []
+        for zrange in zrangelist:
+            infotbl = Table.read(mockqsodir+'/%sqso_M21.fits'%zrange)
+            combinedinfo.append(infotbl)
+
+            spechdu = fits.open(mockqsodir+'/%sqso_spectra.fits'%zrange)
+            combinedspec.append(spechdu[0].data[infotbl['qidx']])
+
+        combinedinfotbl = vstack(combinedinfo)
+        combinedspecarr = np.concatenate(combinedspec)
+
+        templatehdulist = spechdu.copy()
+        templatehdulist[0].data = allspec
+        templatehdulist[0].header['MAXIS2'] = len(allspec)
+        combinedinfotbl['qidx'] = range(len(combinedinfotbl))
+
+        templatehdulist.writeto(qsospecfile)
+        combinedinfotbl.write(qsoinfofile)
 
     # step 2: lens the quasars
     if step == 2:
         os.system('mkdir -p %s'%outputdir)
 
-        output = outputdir + '/allr.fits'
+        output = outputdir + '/' + outputfile
 
         allreals = []
         for index in range(0, total_real, 1):
@@ -138,7 +187,18 @@ def generate_mainsample(experiment, step):
                 allreals.append(tbl_lens)
 
         tbl_allreals = vstack(allreals)
-        tbl_allreals.write(output, overwrite=True)
+        # this is a temporary output
+        tbl_allreals.write(outputdir+'/allr.fits', overwrite=True)
+
+        # then, clean up column names
+        tbl_allreals.remove_columns(['slopes', 'emLines', 'igmlos', 'synMag', 'synFlux',\
+                                     'obsMag', 'obsMagErr', 'obsFlux', 'obsFluxErr', 'appMag'])
+        tbl_allreals.rename_column('z', 'zqso')
+        tbl_allreals.rename_column('redshift_true', 'zgal')
+        tbl_allreals.rename_column('ra', 'gra')
+        tbl_allreals.rename_column('dec', 'gdec')
+
+        tbl_allreals.write(outputdir+'/'+outputfile)
 
 
 def z6paramtest(step=2):
@@ -208,9 +268,10 @@ def z6paramtest(step=2):
 #        continue
 
 
+
 def main():
-#    generate_mainsample('highz', step=2)
-    z6paramtest(step=2)
+    generate_mainsample('lowz', step=2)
+#    z6paramtest(step=2)
 
 if __name__=='__main__':
     main()

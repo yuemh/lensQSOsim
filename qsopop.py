@@ -3,23 +3,21 @@
 import os, sys
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
-sys.path.append('/Users/minghao/Research/Projects/lensQSO/code2/dependencies/simqso')
-from simqso import qsoSimulation,lumfun,sqmodels
-
-dr9cosmo = FlatLambdaCDM(70,1-0.7,name='BOSSDR9')
-
-from astropy.cosmology import FlatLambdaCDM
 defaultcosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 import matplotlib.pyplot as plt
-import labellines
+
+
+from setpaths import simqsodir
+sys.path.append(simqsodir)
+from simqso import qsoSimulation,lumfun,sqmodels
+
 
 '''
 The following two QLFs are from Ross+2013. 
 lowzQLF: SDSS DR9 PLE, for z<2.2
 medzQLF: SDSS DR9 LEDE, for 2.2<z<3.5
 '''
-
 
 def lowzQLF(which=1):
     # PLE model in Ross+2013, for 0<z<2.2
@@ -29,7 +27,7 @@ def lowzQLF(which=1):
     MStar1450_z0 = MStar_i_z0 + 1.486
     MStar = lumfun.PolyEvolParam([-2.5*k2,-2.5*k1,MStar1450_z0])
     return lumfun.DoublePowerLawLF(logPhiStar,MStar,alpha,beta,
-                                   cosmo=dr9cosmo)
+                                   cosmo=defaultcosmo)
 
 def medzQLF():
     # LEDE model in Ross+2013, for 2.2<z<4
@@ -42,7 +40,7 @@ def medzQLF():
     alpha = -1.29
     beta = -3.51
     return lumfun.DoublePowerLawLF(logPhiStar,MStar,alpha,beta,
-                                   cosmo=dr9cosmo)
+                                   cosmo=defaultcosmo)
 
 '''
 The following QLF is based on Matsuoka+2018 (HSC z~6 QLF),
@@ -177,7 +175,7 @@ def make_simparams(zrange, area, outname, Mlim=-21, seed=12345, Ms=-25, beta=-2.
       # dispersion scale is logarithmic [only option for now]
       'DispersionScale':'logarithmic',
       # set the cosmology, any appropriate instance from astropy.cosmology allowed
-      'Cosmology':dr9cosmo,
+      'Cosmology':defaultcosmo,
       # setting a global random seed allows the simulation to be repeatable
       'RandomSeed':seed,
       # Define the "grid" of points in (M,z) space for the simulation
@@ -277,91 +275,4 @@ def make_simparams(zrange, area, outname, Mlim=-21, seed=12345, Ms=-25, beta=-2.
     return simParams
 
 
-def main():
-    # test lumfun
-#    z5lumfun = z5QLF()
-#    z7lumfun = z7QLF()
-    lowzlumfun = lowzQLF()
-    medzlumfun = medzQLF()
-    k19lumfun = k19QLF()
-    highzlumfun = highzQLF_b3()
-#    ehzlumfun = exhzQLF()
 
-    A18lumfun = A18QLF()
-    Yang16lumfun = YangQLFb3()
-    M18lumfun = M18QLFb3()
-    W19lumfun = W19QLFb3()
-    N20lumfun = N20QLFb3()
-    '''
-    # test the evol
-    PhiSlist = []
-    MSlist = []
-    alphalist = []
-    betalist = []
-
-    zlist = np.arange(0.1, 7.5, 0.1)
-    for z in zlist:
-        PhiS, MS, alpha, beta = k19lumfun.eval_par_at_z(z)
-        PhiSlist.append(PhiS)
-        MSlist.append(MS)
-        alphalist.append(alpha)
-        betalist.append(beta)
-
-    plt.plot(zlist, MSlist)
-    plt.show()
-
-    ztest = 3
-    Mlist = np.arange(-30, -21, 0.1)
-    logPhi_v1 = z5lumfun(Mlist, ztest)
-    logPhi_v2 = z7lumfun(Mlist, ztest)
-    logPhi_v3 = medzlumfun(Mlist, ztest)
-    logPhi_v4 = k19lumfun(Mlist, ztest)
-
-    plt.plot(Mlist, logPhi_v3)
-    plt.plot(Mlist, logPhi_v4)
-
-    plt.show()
-    '''
-
-    Mlist = np.arange(-29, -21, 0.1)
-
-    fig, ax = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=[12, 5])
-    lines = []
-    colors = 'kmb'
-    for i, z in enumerate([1,2]):
-        print(z)
-        lines.append(ax[0].plot(Mlist, lowzlumfun(Mlist, z), colors[i]+'-', label='z=%.1f'%z)[0])
-
-    lines.append(ax[0].plot(Mlist, medzlumfun(Mlist, 3), colors[2]+'-', label='z=3.0')[0])
-
-    ax[0].legend(lines, ['z=1.0 Ross+2013', 'z=2.0 Ross+2013', 'z=3.0 Ross+2013'])
-
-    ax[0].set_xlim([-20, -30])
-
-    ax[0].set_xlabel(r'$M_{1450}$', fontsize=14)
-    ax[0].set_ylabel(r'$\log \Phi~\mathdefault{(Mpc^{-3} Mag^{-1})}$', fontsize=14)
-
-    ax[0].set_title('Low-z QLFs', fontsize=14)
-
-    zlist = [3.9, 5.0, 6.0, 6.7]
-
-    colors = ['c', 'y',  'red', 'brown']
-    refs=['z=3.9 Akiyama+2018', 'z=5.0 Kim+2020', 'z=6.0 Matsuoka+2018', 'z=6.7 Wang+2019']
-
-    lines = []
-
-    for i,z in enumerate(zlist):
-        lines.append(ax[1].plot(Mlist, highzlumfun(Mlist, z), label='z=%.1f'%z, color=colors[i])[0])
-
-    ax[1].legend(lines, refs)
-    ax[1].set_xlim([-20, -30])
-    ax[1].set_xlabel(r'$M_{1450}$', fontsize=14)
-
-    ax[1].set_title('High-z QLFs', fontsize=14)
-    plt.tight_layout()
-    plt.savefig('qlfs.pdf')
-    plt.show()
-
-
-if __name__=='__main__':
-    main()
