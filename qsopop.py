@@ -7,10 +7,23 @@ defaultcosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 import matplotlib.pyplot as plt
 
-
 from setpaths import simqsodir
 sys.path.append(simqsodir)
 from simqso import qsoSimulation,lumfun,sqmodels
+
+
+'''
+Add a luminosity function class besides the default models of SIMQSO
+'''
+
+class LinearInterpEvolParam(lumfun.QlfEvolParam):
+    def eval_at_z(self, z, par=None):
+        par = self._extract_par(par)
+
+        zlist, ylist = par
+        yest = np.interp(z, zlist, ylist)
+
+        return yest
 
 
 '''
@@ -104,10 +117,10 @@ def highzQLF_b3():
     alphalist = [-3.51, -3.11, -3.44, -2.73, -2.5114194345960246]
     betalist = [-1.29, -1.3, -1.21, -1.23, -1.23]
 
-    logPhiStar = lumfun.LinearInterpEvolParam([zlist, logPhilist])
-    MStar = lumfun.LinearInterpEvolParam([zlist, Mslist])
-    alpha = lumfun.LinearInterpEvolParam([zlist, alphalist])
-    beta = lumfun.LinearInterpEvolParam([zlist, betalist])
+    logPhiStar = LinearInterpEvolParam([zlist, logPhilist])
+    MStar = LinearInterpEvolParam([zlist, Mslist])
+    alpha = LinearInterpEvolParam([zlist, alphalist])
+    beta = LinearInterpEvolParam([zlist, betalist])
 
     return lumfun.DoublePowerLawLF(logPhiStar,MStar,alpha,beta,
                                    cosmo=defaultcosmo)

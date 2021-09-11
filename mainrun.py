@@ -4,14 +4,10 @@ import matplotlib.pyplot as plt
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import Table, vstack
 from astropy.io import fits
-sys.path.append('/Users/minghao/Research/Projects/lensQSO/code2/dependencies/simqso')
 
-from simqso import qsoSimulation,lumfun,sqmodels
-dr9cosmo = FlatLambdaCDM(70,1-0.7,name='BOSSDR9')
-
-import lensQSOsim.qsopop as qp
-import lensQSOsim.utils as utils
-import lensQSOsim.lensing as lensing
+import qsopop as qp
+import utils
+import lensing
 
 
 def mockqso(zrange, outdir, abslim=-21, **kwargs):
@@ -24,7 +20,7 @@ def mockqso(zrange, outdir, abslim=-21, **kwargs):
     # one realization = 1/50 sky
     area = allsky_deg2 / cosmodc2_deg2 * random_deg2 * 0.02
     # use a small area to quickly test the code
-#    area = 10 # for test
+    area = 10 # for test
 
     # the name of the output file
     outname = zrange + 'qso'
@@ -103,7 +99,7 @@ def generate_mainsample(experiment, step):
 
     if experiment == 'highz':
         # the position to store the mock quasars
-        mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/default/'
+        mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/defaultbright/'
 
         # the redshift ranges to simulate; see qsopop.py for detailed information.
         # It is not very straightforward because SIMQSO takes observed magnitudes rather than absolute magnitudes as input
@@ -114,19 +110,19 @@ def generate_mainsample(experiment, step):
         qsospecfile = mockqsodir + '/mockQSO_default_spec_highz.fits'
 
         # the position to store the realizations of the lensed quasars
-        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/highz'
+        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/test/highz'
         # the file to save the lensed quasar info
         outputfile = 'highzlensqso.fits'
 
         # Number of random realizations. One realization is 1/50 sky
-        total_real = 1000
+        total_real = 10
 
     elif experiment == 'lowz':
         zrangelist = ['lowz', 'medz', 'z4']
-        mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/default/'
-        qsoinfofile = mockqsodir + '/mockQSO_default_info_lowzadd.fits'
+        mockqsodir = '/Users/minghao/Research/Projects/lensQSOsim/data/mockQSO/test/'
+        qsoinfofile = mockqsodir + '/mockQSO_default_info_lowz.fits'
         qsospecfile = mockqsodir + '/mockQSO_default_spec.fits'
-        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/default/lowzadd/'
+        outputdir = '/Users/minghao/Research/Projects/lensQSOsim/data/mocklens/test/lowz/'
         outputfile = 'lowzaddlensqso.fits'
 
         total_real = 50
@@ -158,8 +154,8 @@ def generate_mainsample(experiment, step):
         combinedspecarr = np.concatenate(combinedspec)
 
         templatehdulist = spechdu.copy()
-        templatehdulist[0].data = allspec
-        templatehdulist[0].header['MAXIS2'] = len(allspec)
+        templatehdulist[0].data = combinedspecarr
+        templatehdulist[0].header['MAXIS2'] = len(combinedspecarr)
         combinedinfotbl['qidx'] = range(len(combinedinfotbl))
 
         templatehdulist.writeto(qsospecfile)
@@ -242,36 +238,11 @@ def z6paramtest(step=2):
             tbl_allreals = vstack(allreals)
             tbl_allreals.write(output, overwrite=True)
 
-
-#    ztest = 3
-#    Ntest = 100000
-#    zlist = np.ones(Ntest) * ztest
-#    ztesttbl = Table({'z': zlist, 'qidx': range(Ntest)})
-#    ztesttbl.write(mockqsodir+'/z%dfixed_sis.fits'%ztest)
-
-
-#    Ms = -24.90
-#    beta = -2.73
-#    for alpha in np.arange(-2, -1, 0.1):
-#        mockqso('z6slopetest', mockqsodir, -21, Ms=Ms, beta=beta, alpha=alpha)
-
-#    Ms = -24.90
-#    alpha = -1.23
-#    for beta in np.arange(-3.6, -2.6, 0.1):
-#        mockqso('z6slopetest', mockqsodir, -21, Ms=Ms, beta=beta, alpha=alpha)
-
-#    mockqso('z7a2', mockqsodir, -21)
-
-#    Ms = -24.90
-#    alpha = -1.23
-#    for beta in np.arange(-3.6, -2.6, 0.1):
-#        continue
-
-
-
 def main():
-    generate_mainsample('lowz', step=2)
-#    z6paramtest(step=2)
+#    generate_mainsample('highz', step=1)
+#    generate_mainsample('highz', step=2)
+#    addphot()
+#    generate_simimage()
 
 if __name__=='__main__':
     main()

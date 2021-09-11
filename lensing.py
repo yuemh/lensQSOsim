@@ -29,6 +29,15 @@ def theta_E(sigma, zl, zs, cosmo=defaultcosmo):
     theta = Dls / Ds * 4 * np.pi * (sigma/3e5)** 2 * 206265
     return theta
 
+def correctq(old_ell):
+
+    random_quantity = np.sqrt(2*old_ell/(1+old_ell**2))
+
+    newq = np.sqrt((1-random_quantity)/(1+random_quantity))
+
+    return newq
+
+
 def maxsep(xlist, ylist):
     '''
     Obtain the maximum separation between arbitrary positions in a list
@@ -162,8 +171,6 @@ def save_crude_catalog(qsotbl, galtbl, seed=None):
 
     # combine info
     combined = hstack([selected_qsotbl,  selected_galtbl])
-    combined['axisratio'] =\
-            combined['size_minor_true'] / combined['size_true']
 
     # need to add random shears, convergences, PA
     shear_sig = np.log10(1+combined['z']) * 0.04024618 \
@@ -260,7 +267,9 @@ def lensing_crude_catalog(tbl, output=None):
         gdec = tbl['dec'][index]
 
         # galaxy AR and PA
-        ar = tbl['axisratio'][index]
+        ar_old = tbl['size_minor_true'][index]/tbl['size_true'][index]
+        ell = (1-ar_old)/(1+ar_old)
+        ar = correctq(ell)
         pa = tbl['pa_lens'][index]
 
         # galaxy redshift
